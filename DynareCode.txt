@@ -1,0 +1,203 @@
+%Endogenous variables
+var GDP MC PJ PO PN PD Omega q Q QC QI QCf QIf qf C Ig Pi Yc W N tauC
+ic Bc Bg Bf PYo To Wo pi Tr Kg F T D Y S d ig gF iff G XoM iF ifp M
+Res Resp A Zo ZF Rat Ztauc Zig;
+
+% Exogenous variables
+varexo eA eZo;
+
+% Parameters
+parameters phi epsilon Beta theta Rho tauCp b tauo delta alphaK nu sigma
+alphaY alphapi alphaif alphaC igp pip gFp g tr alphaRes  wo res Eqf vc vi
+Yp EPYo;
+
+%Parameter values
+phi = 10; epsilon = 12.11; Beta = 0.893; theta = 0.7499; sigma = 2.94;
+g = 0.0835; tr = 0.0583; igp = 0.22; pip = 1; res = 0.125;
+vc = 0.86; vi = 0.73; Rho = 0.9; delta = 0.07; tauo = 0.45;
+b = 0.44; wo = 0.068;  alphaK = 0.16;
+nu = 2; tauCp = 0.18; gFp = 0.01;
+alphaY = 0.5/(0.5+1.7); alphapi = 1.7/(0.5+1.7); alphaRes = 1.1;
+alphaC = 0.5; alphaif = 0.5;
+
+//Resource income and import price
+EPYo = 1; Eqf = 1;
+
+//Potential Output (Steady state non_resource output of the flexible-price model)
+Yp = 1.16803;
+
+// NOTE: The Flexible-price counterpart of the below NK model can be obtained by simply setting the -
+// - proportion of firms that don't update their prices (the theta parameter above) to zero.
+
+% The (Nonlinear) Model
+
+model;
+// Households
+(1+tauC)*C+(1+ic(-1))*(Bc(-1)/pi)+M+Bg = N*W+S*Wo+(M(-1)/pi)+(1+ic(-1))*(Bg(-1)/pi)+Tr+Omega+Bc;
+(C(+1)/C)^sigma = (1+ic)*(Beta/pi(+1));
+(C^sigma)*(N^phi) = W/(1+tauC);
+(C^sigma)*(M^(-nu)) = ic/((1+tauC)*(1+ic));
+
+//Government
+(1+ic(-1))*(Bg(-1)/pi)+Pi*Ig+G+Tr+(1+iff(-1))*S*(Bf(-1)/pi)+S*F = T+S*To+(1+iF)*S*F(-1)+D;
+D = Bg+S*Bf;
+Bg = b*D;
+T = tauC*C;
+To = tauo*PYo;
+Wo = wo*PYo;
+Pi*Ig = ig*GDP;
+G = g*GDP;
+Tr = tr*GDP;
+Kg = (1-delta)*Kg(-1)+Ig;
+F = gF*To;
+ig = igp*Zig;
+d = D/GDP;
+gF = gFp*ZF;
+Y = Yc+Pi*Ig;
+Yc = C+G;
+GDP = Y+S*PYo-S*qf*(QCf+QIf);
+tauC-tauCp*Ztauc = alphaC*(d-STEADY_STATE(d));
+iff-ifp = (alphaif*(d-STEADY_STATE(d)));
+iF = STEADY_STATE(ic)/6;
+ifp = iF;
+
+//Central Bank
+ic - STEADY_STATE(ic) = alphaY*((Y-Yp)/Yp)+alphapi*(pi-pip);
+Res = Res(-1)+To+Wo+(1+iF)*F(-1)+Bf-qf*(QCf+QIf)-F-(1+iff(-1))*Bf(-1);
+Res/Resp = ((STEADY_STATE(S))/S)^alphaRes;
+Resp = res*(qf(-1)*(QCf(-1)+QIf(-1))+qf(-2)*(QCf(-2)+QIf(-2)));
+
+//Firms
+Yc = (QC^vc)*(QCf^(1-vc));
+QC = vc*Yc/q;
+QCf = (1-vc)*Yc/(S*qf);
+Ig = (QI^vi)*(QIf^(1-vi));
+QI = vi*Pi*Ig/q;
+QIf = (1-vi)*Pi*Ig/(S*qf);
+Q = QC+QI;
+Rat = Q/(QCf+QIf);
+q^(1-epsilon)=theta*((q(-1)/pi)^(1-epsilon))+(1-theta)*(PO^(1-epsilon));
+MC = W/(A*(Kg^alphaK));
+PO = (epsilon/(epsilon-1))*((PN^epsilon)/(PD^epsilon));
+PN^epsilon = Q*(q^epsilon)*MC+Beta*theta*((PN(+1)*pi(+1))^epsilon);
+PD^epsilon = Q*(q^epsilon)+Beta*theta*((PD(+1)*pi(+1))^epsilon);
+N = (Q*(q^epsilon)*(PJ^(-epsilon)))/(A*(Kg^alphaK));
+PJ^(-epsilon) = (1-theta)*(PO^(-epsilon))+theta*((PJ(-1)/pi)^(-epsilon));
+Omega = Q*q-W*N;
+XoM = PYo/qf*(QCf+QIf);
+
+//Natural resource income and import price
+PYo = EPYo*Zo;
+qf = Eqf;
+
+//Exogenous Shocks (Used eZo for all active and eA for all non active shocks, to avoid repetition)
+A = (exp(eA))*(A(-1)^Rho);
+Zo = (exp(-eZo))*(Zo(-1)^Rho);
+ZF = (exp(eA))*(ZF(-1)^Rho);
+Zig = (exp(eA))*(Zig(-1)^Rho);
+Ztauc = (exp(eA))*(Ztauc(-1)^Rho);
+end;
+
+//The derived steady state
+
+steady_state_model;
+qf = Eqf;
+tauC = tauCp;
+ic = (1/Beta)-1;
+iF = ic/6;
+ifp = iF;
+iff = ifp;
+gF = gFp;
+ig = igp;
+PYo = EPYo;
+pi = 1;
+Y = Yp;
+To = tauo*PYo;
+Wo = wo*PYo;
+F = gF*To;
+A_one = ig*PYo/(1-ig*(vi-vc));
+B_one = ig*vc*Y/(1-ig*(vi-vc));
+A_two = iff*(1-b)/(Wo+To+iF*F-(vc-vi)*A_one);
+B_two = ((1-vc)*Y+(vc-vi)*B_one)/(Wo+To+iF*F-(vc-vi)*A_one);
+A_three = PYo/(1-ig*(vi-vc));
+B_three = vc*Y/(1-ig*(vi-vc));
+n = (1+tauC)*ig+(1+tauC)*g+tr;
+A_four = (To+iF*F-n*A_three)/(b*ic+(1-b)*iff);
+B_four = (tauC*Y-n*B_three)/(b*ic+(1-b)*iff);
+S = (B_two+A_two*B_four)/(1-A_two*A_four);
+D = B_four+A_four*S;
+Pi_Ig = B_one+A_one*S;
+GDP = Pi_Ig/ig;
+Yc = Y-Pi_Ig;
+C = Y-Pi_Ig-g*GDP;
+A_five = (epsilon/(epsilon-1))*((delta/Pi_Ig)^(alphaK+alphaK*phi))*(1+tauC)*((vc*Yc+vi*Pi_Ig)^phi)*(C^sigma);
+A_six = (((1/vi)^vi)*((S*qf/(1-vi))^(1-vi)))^(alphaK+alphaK*phi);
+A_seven = 1/((1+phi)*(1-vi*alphaK));
+q = (A_five*A_six)^A_seven;
+Pi = ((q/vi)^vi)*((S*qf/(1-vi))^(1-vi));
+Ig = Pi_Ig/Pi;
+QC = vc*Yc/q;
+QCf = (1-vc)*Yc/(S*qf);
+QI = vi*Pi*Ig/q;
+QIf = (1-vi)*Pi*Ig/(S*qf);
+G = g*GDP;
+Kg = Ig/delta;
+Q = QC+QI;
+Rat = Q/(QCf+QIf);
+N = Q/(Kg^alphaK);
+W = (1+tauC)*(C^sigma)*(N^phi);
+MC = W/(Kg^alphaK);
+PO = (epsilon/(epsilon-1))*MC;
+Tr = tr*GDP;
+T = tauC*C;
+d = D/GDP;
+Bg = b*D;
+Bf = (1-b)*(D/S);
+//PO = q;
+PJ = PO;
+PD = ((Q*(q^epsilon))/(1-Beta*theta))^(1/epsilon);
+PN = (MC*(PD^epsilon))^(1/epsilon);
+Omega = Q*q-W*N;
+M = ((ic/((1+tauC)*(1+ic)))^(-1/nu))*(C^(sigma/nu));
+Bc = (-1/ic)*((1+tauC)*C-N*W-S*Wo-ic*Bg-Tr-Omega);
+Resp = res*(2*qf*(QCf+QIf));
+Res = Resp;
+XoM = PYo/qf*(QCf+QIf);
+A = 1;
+Zo = 1;
+ZF = 1;
+Ztauc = 1;
+Zig = 1;
+end;
+
+
+% Finding the steady state and checking for its stability
+steady;
+check;options_.noprint=1;
+
+% AR(1) processes with exogenous shocks (All shocks but Resource Exports' set to 0. The latter is set to 1%)
+//Different shocks/Combination of shocks can readily be simulated
+
+shocks;
+var eA; stderr 0.0;
+var eZo; stderr 0.01;
+end;
+
+%Simulation and Impulse-response
+stoch_simul(irf=40,periods=1000,qz_zero_threshold=1e-20) GDP Y C Bc pi ic N Kg Bg Rat S M;
+//More variables can be added to the Imp-resp at will
+
+%Adjustments to the irf structure before exporting the data
+//oo_.irfs.Pix_eZo = oo_.irfs.Pi_eZo;
+//oo_.irfs.dx_eZo = oo_.irfs.d_eZo;
+//oo_.irfs.qx_eZo = oo_.irfs.q_eZo;
+//oo_.irfs.igx_eZo = oo_.irfs.ig_eZo;
+//oo_.irfs = rmfield(oo_.irfs, 'Pi_eZo');
+
+% Exporting IRF data as csv
+//irf_names = fieldnames(oo_.irfs);
+//for i = 1:length(irf_names)
+//    irf_data = oo_.irfs.(irf_names{i});
+//    irf_data_transposed = irf_data';  % For transposing the data
+//    csvwrite(['/Path/to/intended/destination/', 'IRF_', irf_names{i}, '.csv'], irf_data_transposed);
+//end
